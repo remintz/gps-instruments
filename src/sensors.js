@@ -99,11 +99,13 @@ function startGPS() {
 function startOrientation() {
   function handleOrientation(event) {
     // Heading via compass (works when stationary)
-    // webkitCompassHeading is iOS-specific, alpha is Android
+    // iOS: webkitCompassHeading gives true north heading directly
+    // Android: use (360 - alpha) from absolute orientation event
+    // Fallback: use alpha even if not absolute (relative but still rotates)
     let compassHeading = null;
-    if (event.webkitCompassHeading !== undefined) {
+    if (event.webkitCompassHeading != null && event.webkitCompassHeading >= 0) {
       compassHeading = event.webkitCompassHeading;
-    } else if (event.alpha !== null && event.absolute) {
+    } else if (event.alpha !== null) {
       compassHeading = (360 - event.alpha) % 360;
     }
 
@@ -111,12 +113,12 @@ function startOrientation() {
       updateHeading(compassHeading);
     }
 
-    // Artificial horizon
-    const beta = event.beta ?? 0;   // pitch: -180..180 (front/back tilt)
-    const gamma = event.gamma ?? 0; // roll: -90..90 (left/right tilt)
+    // Artificial horizon — offset beta by 90° so that holding the
+    // phone upright (portrait) shows a level horizon
+    const beta = event.beta ?? 0;   // -180..180
+    const gamma = event.gamma ?? 0; // -90..90
 
-    // Clamp pitch for display
-    const pitch = Math.max(-90, Math.min(90, beta));
+    const pitch = Math.max(-90, Math.min(90, beta - 90));
     const roll = gamma;
 
     // pitch: 2px per degree, roll: rotate
