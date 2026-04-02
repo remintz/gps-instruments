@@ -1,5 +1,6 @@
 const G = 9.81;
 const MS_TO_KMH = 3.6;
+const RAD_TO_DEG = 180 / Math.PI;
 
 let els = {};
 
@@ -46,36 +47,30 @@ function updateHeading(deg) {
 
 // ── GPS ──
 
-let gpsWatchId = null;
-
 function startGPS() {
   if (!('geolocation' in navigator)) {
     setStatus(false, 'Geolocation não suportada');
     return;
   }
 
-  gpsWatchId = navigator.geolocation.watchPosition(
+  navigator.geolocation.watchPosition(
     (pos) => {
       const { speed, heading, altitude, accuracy, altitudeAccuracy } = pos.coords;
 
-      // Speed
       if (speed !== null && speed >= 0) {
         els.speed.textContent = (speed * MS_TO_KMH).toFixed(1);
       } else {
         els.speed.textContent = '0.0';
       }
 
-      // Heading from GPS (only available when moving)
       if (heading !== null && !isNaN(heading)) {
         updateHeading(heading);
       }
 
-      // Altitude GPS
       if (altitude !== null) {
         els.altGps.textContent = Math.round(altitude);
       }
 
-      // Accuracy info
       const parts = [];
       if (accuracy) parts.push(`GPS ±${Math.round(accuracy)}m`);
       if (altitudeAccuracy) parts.push(`Alt ±${Math.round(altitudeAccuracy)}m`);
@@ -86,22 +81,14 @@ function startGPS() {
     (err) => {
       setStatus(false, `GPS erro: ${err.message}`);
     },
-    {
-      enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: 10000,
-    }
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
   );
 }
 
-// ── Device Orientation (heading fallback + artificial horizon) ──
+// ── Device Orientation (heading only) ──
 
 function startOrientation() {
   function handleOrientation(event) {
-    // Heading via compass (works when stationary)
-    // iOS: webkitCompassHeading gives true north heading directly
-    // Android: use (360 - alpha) from absolute orientation event
-    // Fallback: use alpha even if not absolute (relative but still rotates)
     let compassHeading = null;
     if (event.webkitCompassHeading != null && event.webkitCompassHeading >= 0) {
       compassHeading = event.webkitCompassHeading;
@@ -112,24 +99,6 @@ function startOrientation() {
     if (compassHeading !== null) {
       updateHeading(compassHeading);
     }
-
-    // Artificial horizon — offset beta by 90° so that holding the
-    // phone upright (portrait) shows a level horizon
-    const beta = event.beta ?? 0;   // -180..180
-    const gamma = event.gamma ?? 0; // -90..90
-
-    const pitch = Math.max(-90, Math.min(90, beta - 90));
-    const roll = gamma;
-
-    // pitch: 2px per degree, roll: rotate
-    const pitchOffset = pitch * 2;
-    els.horizonPitchRoll.setAttribute(
-      'transform',
-      `rotate(${-roll}, 100, 100) translate(0, ${pitchOffset})`
-    );
-
-    els.pitchVal.textContent = `${pitch.toFixed(1)}°`;
-    els.rollVal.textContent = `${roll.toFixed(1)}°`;
   }
 
   if (typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -145,32 +114,64 @@ function startOrientation() {
   }
 }
 
-// ── Accelerometer / G-Force (gravity subtracted) ──
+// ── DeviceMotion: G-Force + Artificial Horizon ──
+//
+// Pitch and roll are computed from the gravity vector
+// (accelerationIncludingGravity) instead of Euler angles, which avoids
+// the gimbal-lock 360° spin that occurs with DeviceOrientation beta/gamma
+// when the phone crosses the vertical position.
 
 function startMotion() {
   function handleMotion(event) {
-    // Use .acceleration (without gravity) instead of .accelerationIncludingGravity
+    const accGrav = event.accelerationIncludingGravity;
     const acc = event.acceleration;
-    if (!acc || acc.x === null) return;
+    if (!accGrav || accGrav.x === null) return;
 
-    const gx = acc.x / G;
-    const gy = acc.y / G;
-    const gz = acc.z / G;
+    // ── Artificial Horizon (from gravity vector) ──
+    // Phone vertical portrait: gx≈0, gy≈-9.81, gz≈0
+    // pitch = tilt forward/back relative to vertical
+    // roll  = tilt left/right
+    const gx = accGrav.x;
+    const gy = accGrav.y;
+    const gz = accGrav.z;
 
-    els.gvalX.textContent = `${gx.toFixed(2)} G`;
-    els.gvalY.textContent = `${gy.toFixed(2)} G`;
-    els.gvalZ.textContent = `${gz.toFixed(2)} G`;
+    // pitch: angle between -gz and -gy (0° when phone is vertical)
+    // positive = tilted back (screen facing ceiling)
+    const pitch = Math.atan2(gz, -gy) * RAD_TO_DEG;
+    // roll: lateral tilt, positive = tilted right
+    const roll = Math.atan2(-gx, -gy) * RAD_TO_DEG;
 
-    updateBar(els.gbarX, gx);
-    updateBar(els.gbarY, gy);
-    updateBar(els.gbarZ, gz);
+    const clampedPitch = Math.max(-90, Math.min(90, pitch));
+    const clampedRoll = Math.max(-90, Math.min(90, roll));
 
-    // Dot on circle
-    const maxG = 3;
-    const dotX = 45 + (gx / maxG) * 35;
-    const dotY = 45 - (gy / maxG) * 35;
-    els.gforceDot.setAttribute('cx', Math.max(5, Math.min(85, dotX)));
-    els.gforceDot.setAttribute('cy', Math.max(5, Math.min(85, dotY)));
+    const pitchOffset = clampedPitch * 2; // 2px per degree
+    els.horizonPitchRoll.setAttribute(
+      'transform',
+      `rotate(${-clampedRoll}, 100, 100) translate(0, ${pitchOffset})`
+    );
+    els.pitchVal.textContent = `${clampedPitch.toFixed(1)}°`;
+    els.rollVal.textContent = `${clampedRoll.toFixed(1)}°`;
+
+    // ── G-Force (gravity subtracted) ──
+    if (acc && acc.x !== null) {
+      const fx = acc.x / G;
+      const fy = acc.y / G;
+      const fz = acc.z / G;
+
+      els.gvalX.textContent = `${fx.toFixed(2)} G`;
+      els.gvalY.textContent = `${fy.toFixed(2)} G`;
+      els.gvalZ.textContent = `${fz.toFixed(2)} G`;
+
+      updateBar(els.gbarX, fx);
+      updateBar(els.gbarY, fy);
+      updateBar(els.gbarZ, fz);
+
+      const maxG = 3;
+      const dotX = 45 + (fx / maxG) * 35;
+      const dotY = 45 - (fy / maxG) * 35;
+      els.gforceDot.setAttribute('cx', Math.max(5, Math.min(85, dotX)));
+      els.gforceDot.setAttribute('cy', Math.max(5, Math.min(85, dotY)));
+    }
   }
 
   if (typeof DeviceMotionEvent.requestPermission === 'function') {
