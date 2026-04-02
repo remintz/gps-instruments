@@ -1,0 +1,273 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #1a1a2e;
+  --card-bg: #16213e;
+  --accent: #0f3460;
+  --text: #e0e0e0;
+  --value: #00d4ff;
+  --label: #8892a4;
+  --warning: #ff6b6b;
+  --success: #51cf66;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100dvh;
+}
+
+header {
+  text-align: center;
+  padding: 8px 0;
+}
+
+header h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--label);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+#status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--label);
+  margin-top: 4px;
+}
+
+#status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warning);
+  transition: background 0.3s;
+}
+
+#status-dot.active {
+  background: var(--success);
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  padding: 16px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--label);
+  margin-bottom: 8px;
+}
+
+.value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.value-primary {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: var(--value);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.value-unit {
+  font-size: 0.85rem;
+  color: var(--label);
+  font-weight: 500;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sub-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sub-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--label);
+}
+
+.sub-value {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--value);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Compass */
+.compass-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.compass-ring {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.compass-ring svg {
+  width: 100%;
+  height: 100%;
+}
+
+.compass-needle {
+  transition: transform 0.3s ease-out;
+  transform-origin: 40px 40px;
+}
+
+.compass-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.compass-degrees {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--value);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.compass-cardinal {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--label);
+}
+
+/* G-Force */
+.gforce-display {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gforce-circle {
+  width: 90px;
+  height: 90px;
+  flex-shrink: 0;
+}
+
+.gforce-circle svg {
+  width: 100%;
+  height: 100%;
+}
+
+.gforce-values {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.gforce-axis {
+  display: flex;
+  align-items: center;
+}
+
+.gforce-axis-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--label);
+  width: 20px;
+}
+
+.gforce-axis-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 3px;
+  margin: 0 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.gforce-axis-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--value);
+  border-radius: 3px;
+  transition: left 0.1s, width 0.1s;
+}
+
+.gforce-axis-val {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--value);
+  font-variant-numeric: tabular-nums;
+  width: 50px;
+  text-align: right;
+}
+
+/* Start button */
+#start-btn {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: var(--accent);
+  color: var(--value);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: opacity 0.2s;
+}
+
+#start-btn:active {
+  opacity: 0.7;
+}
+
+#start-btn.hidden {
+  display: none;
+}
+
+.accuracy-info {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--label);
+  padding: 4px 0;
+}
