@@ -265,6 +265,25 @@ header h1 {
   display: none;
 }
 
+/* Artificial Horizon */
+.horizon-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.horizon-svg {
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+}
+
+.horizon-readouts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .accuracy-info {
   text-align: center;
   font-size: 0.7rem;
