@@ -151,8 +151,9 @@ header h1 {
 }
 
 .compass-needle {
+  transform-box: fill-box;
+  transform-origin: center center;
   transition: transform 0.3s ease-out;
-  transform-origin: 40px 40px;
 }
 
 .compass-info {

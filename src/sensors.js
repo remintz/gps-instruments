@@ -2,6 +2,15 @@ const G = 9.81;
 const MS_TO_KMH = 3.6;
 const RAD_TO_DEG = 180 / Math.PI;
 
+// Low-pass filter (exponential moving average)
+const SMOOTHING = 0.15; // 0 = no change, 1 = no smoothing
+let smoothPitch = 0;
+let smoothRoll = 0;
+
+function lerp(current, target, alpha) {
+  return current + alpha * (target - current);
+}
+
 let els = {};
 
 function getEls() {
@@ -42,7 +51,8 @@ function updateHeading(deg) {
   const h = Math.round(deg);
   els.headingDeg.textContent = `${h}°`;
   els.headingCardinal.textContent = degreesToCardinal(h);
-  els.compassNeedle.setAttribute('transform', `rotate(${h}, 40, 40)`);
+  // Use CSS transform instead of SVG attribute for iOS compatibility
+  els.compassNeedle.style.transform = `rotate(${h}deg)`;
 }
 
 // ── GPS ──
@@ -115,11 +125,6 @@ function startOrientation() {
 }
 
 // ── DeviceMotion: G-Force + Artificial Horizon ──
-//
-// Pitch and roll are computed from the gravity vector
-// (accelerationIncludingGravity) instead of Euler angles, which avoids
-// the gimbal-lock 360° spin that occurs with DeviceOrientation beta/gamma
-// when the phone crosses the vertical position.
 
 function startMotion() {
   function handleMotion(event) {
@@ -129,25 +134,26 @@ function startMotion() {
 
     // ── Artificial Horizon (from gravity vector) ──
     // Phone vertical portrait: gx≈0, gy≈-9.81, gz≈0
-    // pitch = tilt forward/back relative to vertical
-    // roll  = tilt left/right
     const gx = accGrav.x;
     const gy = accGrav.y;
     const gz = accGrav.z;
 
-    // pitch: angle between -gz and -gy (0° when phone is vertical)
-    // positive = tilted back (screen facing ceiling)
-    const pitch = Math.atan2(gz, -gy) * RAD_TO_DEG;
-    // roll: lateral tilt, positive = tilted right
-    const roll = Math.atan2(-gx, -gy) * RAD_TO_DEG;
+    // pitch: forward/back tilt (positive = tilted back)
+    const rawPitch = Math.atan2(gz, -gy) * RAD_TO_DEG;
+    // roll: lateral tilt (positive = tilted right)
+    const rawRoll = Math.atan2(gx, -gy) * RAD_TO_DEG;
 
-    const clampedPitch = Math.max(-90, Math.min(90, pitch));
-    const clampedRoll = Math.max(-90, Math.min(90, roll));
+    // Low-pass filter for smooth movement
+    smoothPitch = lerp(smoothPitch, rawPitch, SMOOTHING);
+    smoothRoll = lerp(smoothRoll, rawRoll, SMOOTHING);
+
+    const clampedPitch = Math.max(-90, Math.min(90, smoothPitch));
+    const clampedRoll = Math.max(-90, Math.min(90, smoothRoll));
 
     const pitchOffset = clampedPitch * 2; // 2px per degree
     els.horizonPitchRoll.setAttribute(
       'transform',
-      `rotate(${-clampedRoll}, 100, 100) translate(0, ${pitchOffset})`
+      `rotate(${clampedRoll}, 100, 100) translate(0, ${pitchOffset})`
     );
     els.pitchVal.textContent = `${clampedPitch.toFixed(1)}°`;
     els.rollVal.textContent = `${clampedRoll.toFixed(1)}°`;
