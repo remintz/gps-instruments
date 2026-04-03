@@ -291,3 +291,11 @@ header h1 {
   color: var(--label);
   padding: 4px 0;
 }
+
+.version-info {
+  text-align: center;
+  font-size: 0.6rem;
+  color: var(--label);
+  opacity: 0.35;
+  padding: 8px 0 4px;
+}

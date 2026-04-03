@@ -145,6 +145,7 @@ document.querySelector('#app').innerHTML = `
   </div>
 
   <div class="accuracy-info" id="accuracy-info"></div>
+  <div class="version-info">v0.5.0</div>
 `;
 
 initSensors();

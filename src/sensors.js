@@ -3,7 +3,7 @@ const MS_TO_KMH = 3.6;
 const RAD_TO_DEG = 180 / Math.PI;
 
 // Low-pass filter (exponential moving average)
-const SMOOTHING = 0.15; // 0 = no change, 1 = no smoothing
+const SMOOTHING = 0.4; // 0 = frozen, 1 = no smoothing
 let smoothPitch = 0;
 let smoothRoll = 0;
 
@@ -151,9 +151,11 @@ function startMotion() {
     const clampedRoll = Math.max(-90, Math.min(90, smoothRoll));
 
     const pitchOffset = clampedPitch * 2; // 2px per degree
+    // Negate roll: in a real attitude indicator the horizon line tilts
+    // opposite to the aircraft bank (tilt phone left → horizon goes right)
     els.horizonPitchRoll.setAttribute(
       'transform',
-      `rotate(${clampedRoll}, 100, 100) translate(0, ${pitchOffset})`
+      `rotate(${-clampedRoll}, 100, 100) translate(0, ${pitchOffset})`
     );
     els.pitchVal.textContent = `${clampedPitch.toFixed(1)}°`;
     els.rollVal.textContent = `${clampedRoll.toFixed(1)}°`;
